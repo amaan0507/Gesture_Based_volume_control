@@ -4,4 +4,5 @@ comtypes
 numpy
 pycaw
 streamlit
-comtypes
+comtypes; platform_system == "Windows"
+
