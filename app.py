@@ -7,6 +7,20 @@ from ctypes import cast, POINTER
 from comtypes import CLSCTX_ALL
 from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
+
+import platform
+
+if platform.system() == "Windows":
+    try:
+        from comtypes import CLSCTX_ALL
+        from ctypes import cast, POINTER
+        # Add any other Windows-specific imports here
+    except ImportError:
+        print("comtypes is not available, skipping Windows-specific features.")
+else:
+    print("Non-Windows environment detected, skipping Windows-specific imports.")
+
+
 # Initialize MediaPipe Hands and Audio Utilities for volume control
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
