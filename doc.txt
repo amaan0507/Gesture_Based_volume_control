@@ -1,0 +1,20 @@
+Algorithm Explanation
+
+Hand Detection and Tracking:
+
+The MediaPipe Hands solution uses a Convolutional Neural Network (CNN) model trained to detect and track hand landmarks in real-time.
+The model detects 21 landmarks on each hand, including fingertips and key knuckles.
+
+Volume Control Algorithm:
+
+Distance-based Mapping: The Euclidean distance between the thumb and index finger is used as a measure to control volume. By moving fingers closer or farther apart, the distance changes, and the volume is adjusted accordingly.
+
+Interpolation: Uses numpy.interp to map the range of hand distances (50–220 pixels) to the system’s volume range (minVol to maxVol), giving a responsive volume control experience.
+
+
+Summary
+This program visually and interactively adjusts system volume based on finger gestures by:
+
+Detecting hand landmarks in real-time using a CNN-based MediaPipe model.
+Calculating the distance between thumb and index fingers.
+Mapping this distance to system volume levels for smooth, gesture-based control.
