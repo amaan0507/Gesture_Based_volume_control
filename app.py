@@ -3,41 +3,31 @@ import mediapipe as mp
 import math
 import numpy as np
 import streamlit as st
-from ctypes import cast, POINTER
-from comtypes import CLSCTX_ALL
-from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-
-
 import platform
-
-if platform.system() == "Windows":
-    try:
-        from comtypes import CLSCTX_ALL
-        from ctypes import cast, POINTER
-        # Add any other Windows-specific imports here
-    except ImportError:
-        print("comtypes is not available, skipping Windows-specific features.")
-else:
-    print("Non-Windows environment detected, skipping Windows-specific imports.")
-
 
 # Initialize MediaPipe Hands and Audio Utilities for volume control
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
 
-devices = AudioUtilities.GetSpeakers()
-interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-volume = cast(interface, POINTER(IAudioEndpointVolume))
-volRange = volume.GetVolumeRange()
-minVol, maxVol = volRange[0], volRange[1]
-volBar, volPer = 400, 0
+# Volume control setup (only for Windows)
+volume, minVol, maxVol = None, None, None
+if platform.system() == "Windows":
+    from ctypes import cast, POINTER
+    from comtypes import CLSCTX_ALL
+    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+
+    devices = AudioUtilities.GetSpeakers()
+    interface = devices.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+    volume = cast(interface, POINTER(IAudioEndpointVolume))
+    volRange = volume.GetVolumeRange()
+    minVol, maxVol = volRange[0], volRange[1]
 
 # Streamlit app configuration
 st.title("Hand Gesture Volume Control")
-st.text("Show your hand to control the system volume.")
+st.text("Show your hand to control the system volume (Windows only).")
 
-# Initialize Webcam
+# Initialize webcam
 wCam, hCam = 640, 480
 cam = cv2.VideoCapture(0)
 cam.set(3, wCam)
@@ -52,9 +42,13 @@ with mp_hands.Hands(
     # Streamlit container for video
     video_container = st.empty()
 
-    while True:
+    # Streamlit button to stop the application
+    stop_button = st.button("Stop", key="stop")
+
+    while cam.isOpened() and not stop_button:
         success, image = cam.read()
         if not success:
+            st.write("Failed to retrieve image from camera.")
             break
 
         # Process the image for hand tracking
@@ -93,22 +87,20 @@ with mp_hands.Hands(
             if length < 50:
                 cv2.line(image, (x1, y1), (x2, y2), (0, 0, 255), 3)
 
-            # Volume control based on the distance
-            vol = np.interp(length, [50, 220], [minVol, maxVol])
-            volume.SetMasterVolumeLevel(vol, None)
-            volBar = np.interp(length, [50, 220], [400, 150])
-            volPer = np.interp(length, [50, 220], [0, 100])
+            # Volume control based on the distance (only on Windows)
+            if platform.system() == "Windows" and volume:
+                vol = np.interp(length, [50, 220], [minVol, maxVol])
+                volume.SetMasterVolumeLevel(vol, None)
+                volBar = np.interp(length, [50, 220], [400, 150])
+                volPer = np.interp(length, [50, 220], [0, 100])
 
-            # Volume bar on the side of the screen
-            cv2.rectangle(image, (50, 150), (85, 400), (0, 0, 0), 3)
-            cv2.rectangle(image, (50, int(volBar)), (85, 400), (0, 0, 0), cv2.FILLED)
-            cv2.putText(image, f'{int(volPer)} %', (40, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 3)
+                # Volume bar on the side of the screen
+                cv2.rectangle(image, (50, 150), (85, 400), (0, 0, 0), 3)
+                cv2.rectangle(image, (50, int(volBar)), (85, 400), (0, 0, 0), cv2.FILLED)
+                cv2.putText(image, f'{int(volPer)} %', (40, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 0), 3)
 
         # Display the image with detected hand and volume controls
         video_container.image(image, channels="BGR")
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-cam.release()
-cv2.destroyAllWindows()
+    cam.release()
+    cv2.destroyAllWindows()
