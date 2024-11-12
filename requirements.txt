@@ -3,7 +3,6 @@ mediapipe
 comtypes
 numpy
 pycaw
-math
 streamlit
 ctypes
 comtypes
